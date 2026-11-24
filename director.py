@@ -236,6 +236,7 @@ def _print_summary(summary: dict):
 
     head_label = summary.get("head_label") or "HEAD"
     reviewer_label = summary.get("reviewer_label") or "CODEX"
+    builder_label = summary.get("builder_label") or "BUILDER"
     failover_mode = summary.get("failover_mode", "NORMAL")
     mode_tag = f" [{failover_mode}]" if failover_mode != "NORMAL" else ""
 
@@ -243,10 +244,10 @@ def _print_summary(summary: dict):
     click.echo(f"{run_id}{mode_tag}\n")
     click.echo(f"HEAD             PASS")
     click.echo(f"BASELINE TEST    {base_test_info}")
-    click.echo(f"ANTIGRAVITY      {builder_status}")
+    click.echo(f"{builder_label}".ljust(16) + f" {builder_status}")
     click.echo(f"BUILD            {build_info}")
     click.echo(f"POST TEST        {test_info}")
-    click.echo(f"{reviewer_label} REVIEW".ljust(17) + f"{review_verdict}")
+    click.echo(f"{reviewer_label} REVIEW".ljust(16) + f" {review_verdict}")
     click.echo("")
     click.echo(f"FILES CHANGED    {files_changed}")
     click.echo(f"SCOPE VIOLATION  {scope_violations}")

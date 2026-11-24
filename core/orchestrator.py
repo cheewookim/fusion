@@ -1885,6 +1885,9 @@ class Orchestrator:
             "failover_mode": getattr(self, "current_failover_mode", "NORMAL"),
             "head_label": getattr(self, "current_head_name", "HEAD"),
             "reviewer_label": getattr(self, "current_reviewer_name", "CODEX"),
+            # The Builder that holds the role at the end of the run (after any provider swap), by CLI name.
+            "builder_label": {"OPENAI": "CODEX", "ANTHROPIC": "CLAUDE", "GOOGLE": "ANTIGRAVITY"}.get(
+                self._get_agent_domain(getattr(self, "builder", None)), "BUILDER"),
             "order": order.model_dump() if order else self._load_json(run_id, "order.json"),
             "provenance": self._load_json(run_id, "provenance.json"),
             "baseline_verification": self._load_json(run_id, "baseline_verification.json"),
