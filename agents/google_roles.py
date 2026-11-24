@@ -1,6 +1,7 @@
 """Antigravity planning/review using the shared isolated official CLI runner."""
 import json
 import tempfile
+from pathlib import Path
 from agents.claude_head import ClaudeHead
 from core.bootstrap import prepare_project
 from core.env_utils import resolve_cli
@@ -10,8 +11,11 @@ from schemas.review_result import ReviewResultSchema
 class GoogleHead(ClaudeHead):
     agent_family = 'antigravity'
     def __init__(self, **kwargs):
-        kwargs['executable'] = kwargs.get('executable') or resolve_cli('agy')
+        agy = kwargs.get('executable') or resolve_cli('agy')
         super().__init__(**kwargs)
+        # ClaudeHead falls back to resolve_cli('claude') when no executable is given. A Google role must never
+        # silently run the Claude CLI: without agy it stays unavailable and the call fails closed (CONFIG_ERROR).
+        self.executable = str(Path(agy).resolve()) if agy else None
         self.provider = 'google'
 
     def _invoke_cli(self, prompt, cwd=None):
