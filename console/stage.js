@@ -47,7 +47,10 @@ const CLI={claude:'ANTHROPIC',antigravity:'GOOGLE',openai:'OPENAI'},CLI_OF={ANTH
 let roleSettings=null,roleToken=null;                 // what the NEXT task will use (data/role_settings.json via /ops/roles)
 async function pollRoles(){try{const r=await getJSON('/ops/roles');roleSettings=r.roles;roleToken=r.csrf;repaint();}catch(e){/* keep the last known roles */}}
 function assignment(){
-  if(roleSettings&&!isLiveNow())return {HEAD:CLI[roleSettings.head],BUILDER:CLI[roleSettings.builder],REVIEWER:CLI[roleSettings.reviewer]};
+  // The operator's role settings are the assignment, also while a task runs. Falling back to DEFAULT_ASSIGN during a
+  // run made the stage show the old built-in roles (BUILDER=Antigravity, REVIEWER=Codex) for every live task; a
+  // provider that really works in another role's slot is still shown, marked "(대행)" by paintScene.
+  if(roleSettings)return {HEAD:CLI[roleSettings.head],BUILDER:CLI[roleSettings.builder],REVIEWER:CLI[roleSettings.reviewer]};
   const a={...DEFAULT_ASSIGN},prov=(status&&status.providers)||{};
   for(const [p,info] of Object.entries(prov))if(info&&ROLES.includes(info.role)&&AI[p])a[info.role]=p;
   return a;
