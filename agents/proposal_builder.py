@@ -12,6 +12,17 @@ from core.autopilot import required_output_path as autopilot_output
 from schemas.builder_result import BuilderResultSchema
 
 
+# Read-only files the Builder is shown as context (files it may write are always shown). Source in other languages
+# and plain-text data are included so a port or data migration can read its original (2026-11-26: a C# word
+# database under reference/ never reached the Builder, which then could not port it). JSON stays out: lock files
+# are large and would crowd real sources out of CONTEXT_BUDGET.
+READABLE_SOURCE_SUFFIXES = frozenset({
+    '.py', '.js', '.ts', '.tsx', '.jsx', '.md', '.toml',
+    '.cs', '.java', '.kt', '.go', '.rs', '.c', '.h', '.cpp', '.swift',
+    '.html', '.css', '.txt', '.csv', '.yaml', '.yml',
+})
+
+
 class ProposalBuilder(AntigravityBuilder):
     @staticmethod
     def _repair_invalid_json_escapes(text):
@@ -107,7 +118,7 @@ class ProposalBuilder(AntigravityBuilder):
                 continue
             allowed, _ = SafetyPolicy.check_pre_tool_file_write(rel, str(root), order.allowed_paths, order.protected_paths)
             # Write protection must not hide baseline source from a fork/upgrade.
-            readable_source = path.suffix.lower() in {'.py', '.js', '.ts', '.tsx', '.jsx', '.md', '.toml'}
+            readable_source = path.suffix.lower() in READABLE_SOURCE_SUFFIXES
             sensitive = any(word in rel.lower() for word in ('secret', 'credential', 'token', 'private_key'))
             if sensitive or path.stat().st_size >= 100_000:
                 continue

@@ -952,3 +952,25 @@ def test_operator_replan_sends_a_security_stop_back_to_planning_without_approvin
     done = runner.run(m["mission_id"])
     assert done["status"] == "DONE" and "operator re-plan" in done["steps"][0]["result"]["treated_as"]
     assert orch.sm.get_run(rid)["current_state"] == State.HUMAN_REQUIRED    # the stopped run itself is not approved
+
+
+def test_read_only_reference_sources_in_other_languages_reach_the_builder(tmp_path, monkeypatch):
+    """A port or data migration must see its original: C# under reference/ was never shown to the Builder."""
+    import sys
+    from agents.proposal_builder import ProposalBuilder
+    from core.research_runner import TriadResearchRunner
+    write(tmp_path, "reference/WordDatabase.cs", "// UNIQUE-CS-MARKER\n")
+    write(tmp_path, "reference/words.csv", "UNIQUE-CSV-MARKER,meaning\n")
+    write(tmp_path, "package-lock.json", '{"UNIQUE-LOCK-MARKER": 1}\n')
+    seen = {}
+
+    def invoke(self, domain, prompt, cwd, stage):
+        seen["prompt"] = prompt
+        return dict(output=json.dumps({"files": [{"path": "src/words.ts", "content": "export {};\n"}]}),
+                    invocation="t", exit_code=0, duration_sec=0)
+    monkeypatch.setattr(TriadResearchRunner, "invoke", invoke)
+    builder = ProposalBuilder(executable=sys.executable)
+    builder.run(OrderSchema(goal="port reference/WordDatabase.cs", allowed_paths=["src/**"]), str(tmp_path))
+    assert "UNIQUE-CS-MARKER" in seen["prompt"] and "UNIQUE-CSV-MARKER" in seen["prompt"]
+    assert "UNIQUE-LOCK-MARKER" not in seen["prompt"]                 # lock files stay out of the context budget
+    assert {"reference/WordDatabase.cs", "reference/words.csv"} <= set(builder.last_execution_info["context_files"])
